@@ -44,7 +44,17 @@ RECOMMENDED_HEADERS = {
 }
 
 # ================= LOGGING =================
+def get_client_ip():
+    """Retrieve the real client IP address even when behind Kong Gateway."""
+    if request.headers.get("X-Forwarded-For"):
+        return request.headers.get("X-Forwarded-For").split(',')[0]  # Take the first IP
+    elif request.headers.get("X-Real-IP"):
+        return request.headers.get("X-Real-IP")
+    else:
+        return request.remote_addr  # Fallback to default if no header found
+
 def save_access_log(ip_address, origin, response, status_code=None):
+    """Log requests with IP, origin, response data, and optional status code."""
     if status_code is not None:
         response = f"Status Code: {status_code}\n{response}"
 
@@ -64,7 +74,7 @@ def home():
 @app.route("/scan", methods=["POST"])
 def scan_website():
     try:
-        ip_address = request.remote_addr
+        ip_address = get_client_ip()
         origin = request.headers.get("Origin", "Unknown")
         data = request.json
         target_url = data.get("url")
@@ -125,20 +135,21 @@ def scan_website():
     except Exception as e:
         error_message = f"Internal Server Error: {str(e)}"
         response = jsonify({"error": error_message})
-        save_access_log(request.remote_addr, request.headers.get("Origin", "Unknown"), error_message, 500)
+        save_access_log(get_client_ip(), request.headers.get("Origin", "Unknown"), error_message, 500)
         return response, 500
 
 @app.route("/download/<filename>", methods=["GET"])
 def download_config(filename):
-
+    ip_address = get_client_ip()
+    origin = request.headers.get("Origin", "Unknown")
     file_path = CONFIG_FOLDER / filename  
 
     if not os.path.exists(file_path):
         response = jsonify({"error": "Configuration file not found"})
-        save_access_log(request.remote_addr, request.headers.get("Origin", "Unknown"), response.data.decode("utf-8"), 404)
+        save_access_log(ip_address, origin, response.data.decode("utf-8"), 404)
         return response, 404
 
-    save_access_log(request.remote_addr, request.headers.get("Origin", "Unknown"), "File downloaded successfully", 200)
+    save_access_log(ip_address, origin, "File downloaded successfully", 200)
     return send_file(file_path, as_attachment=True)
 
 
