@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  flask_app:
+    container_name: securityheaderAPI
+    image: securityheader:1.0
+    build: .
+    networks:
+      - compose_kong-net
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_URL=mysql+pymysql://root:root@flask_db:3306/securityheader  
+      - FLASK_APP=main.py
+    depends_on:
+      flask_db:
+        condition: service_healthy
+    restart: always
+    command: sh -c "sleep 5 && python main.py"
+
+  flask_db:
+    container_name: securityheaderDB
+    image: mysql:latest
+    ports:
+      - "3306:3306"  
+    networks:
+      - compose_kong-net
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=securityheader
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=root || exit 1"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+    restart: on-failure
+
+networks:
+  compose_kong-net: 
+    external: true
+
+volumes:
+  mysql_data:

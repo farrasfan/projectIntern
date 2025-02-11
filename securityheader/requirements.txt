@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+pymysql
+bcrypt
+gunicorn
+beautifulsoup4
+requests
+flask-limiter
+cryptography
