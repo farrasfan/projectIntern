@@ -21,7 +21,7 @@ volumes:
 
 networks:
   kong-net:
-    external: compose_kong-net
+    name: compose_kong-net
 
 services:
   kong-migrations:
