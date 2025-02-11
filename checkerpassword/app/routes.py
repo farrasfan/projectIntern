@@ -106,38 +106,56 @@ def init_routes(app):
         data = request.get_json()
         new_word = data.get('word', '').lower()
 
+        ip = get_client_ip()  # Retrieve real client IP
+        origin = request.headers.get('Origin', 'Unknown')
+
         if not new_word:
-            return jsonify({"error": "Word is required."}), 400
+            response = {"error": "Word is required."}
+            save_access_log(ip, origin, response)  # Log access attempt
+            return jsonify(response), 400
 
         existing_word = Wordlist.query.filter_by(word=new_word).first()
 
         if existing_word:
-            return jsonify({"message": "Word already exists in the wordlist."}), 200
+            response = {"message": "Word already exists in the wordlist."}
+            save_access_log(ip, origin, response)  # Log access attempt
+            return jsonify(response), 200
 
         new_word_entry = Wordlist(word=new_word)
         db.session.add(new_word_entry)
         db.session.commit()
 
-        return jsonify({"message": f"Word '{new_word}' has been added to the wordlist."}), 201
+        response = {"message": f"Word '{new_word}' has been added to the wordlist."}
+        save_access_log(ip, origin, response)  # Log successful operation
+        return jsonify(response), 201
 
     @app.route('/delete_wordlist', methods=['DELETE', 'POST'])
     def delete_wordlist():
         data = request.get_json()
         word_to_delete = data.get('word', '').lower()
 
+        ip = get_client_ip()  # Retrieve real client IP
+        origin = request.headers.get('Origin', 'Unknown')
+
         if not word_to_delete:
-            return jsonify({"error": "Word is required."}), 400
+            response = {"error": "Word is required."}
+            save_access_log(ip, origin, response)  # Log access attempt
+            return jsonify(response), 400
 
         word_entry = Wordlist.query.filter_by(word=word_to_delete).first()
 
         if not word_entry:
-            return jsonify({"message": "Word does not exist in the wordlist."}), 404
+            response = {"message": "Word does not exist in the wordlist."}
+            save_access_log(ip, origin, response)  # Log access attempt
+            return jsonify(response), 404
 
         db.session.delete(word_entry)
         db.session.commit()
 
-        return jsonify({"message": f"Word '{word_to_delete}' has been deleted from the wordlist."}), 200
-    
+        response = {"message": f"Word '{word_to_delete}' has been deleted from the wordlist."}
+        save_access_log(ip, origin, response)  # Log successful operation
+        return jsonify(response), 200
+
     @app.route('/')
     def home():
         return jsonify({"message": "Welcome to Checker Password API"})
