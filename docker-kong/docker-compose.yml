@@ -2,7 +2,7 @@ version: '3.9'
 
 x-kong-config:
   &kong-env
-  KONG_DATABASE: ${KONG_DATABASE:-on}
+  KONG_DATABASE: on
   KONG_PG_DATABASE: kong
   KONG_PG_HOST: db
   KONG_PG_USER: kong
@@ -21,13 +21,12 @@ volumes:
 
 networks:
   kong-net:
-    external: false
+    external: compose_kong-net
 
 services:
   kong-migrations:
     image: "${KONG_DOCKER_TAG:-kong:latest}"
     command: kong migrations bootstrap
-    profiles: [ "database" ]
     depends_on:
       - db
     environment:
@@ -41,7 +40,6 @@ services:
   kong-migrations-up:
     image: "${KONG_DOCKER_TAG:-kong:latest}"
     command: kong migrations up && kong migrations finish
-    profiles: [ "database" ]
     depends_on:
       - db
     environment:
@@ -99,7 +97,6 @@ services:
 
   db:
     image: postgres:9.5
-    profiles: [ "database" ]
     environment:
       POSTGRES_DB: ${KONG_PG_DATABASE:-kong}
       POSTGRES_USER: ${KONG_PG_USER:-kong}
