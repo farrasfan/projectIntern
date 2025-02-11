@@ -1,13 +1,5 @@
 version: '3.9'
 
-x-kong-config:
-  &kong-env
-  KONG_DATABASE: on
-  KONG_PG_DATABASE: kong
-  KONG_PG_HOST: db
-  KONG_PG_USER: kong
-  KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
-
 volumes:
   kong_data: {}
   kong_prefix_vol:
@@ -30,7 +22,11 @@ services:
     depends_on:
       - db
     environment:
-      <<: *kong-env
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_HOST: db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
     secrets:
       - kong_postgres_password
     networks:
@@ -43,7 +39,11 @@ services:
     depends_on:
       - db
     environment:
-      <<: *kong-env
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_HOST: db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
     secrets:
       - kong_postgres_password
     networks:
@@ -54,30 +54,27 @@ services:
     image: "${KONG_DOCKER_TAG:-kong:latest}"
     user: "${KONG_USER:-kong}"
     environment:
-      <<: *kong-env
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_HOST: db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_PROXY_LISTEN: "${KONG_PROXY_LISTEN:-0.0.0.0:8000}"
-      KONG_ADMIN_LISTEN: "${KONG_ADMIN_LISTEN:-0.0.0.0:8001}"
-      KONG_ADMIN_GUI_LISTEN: "${KONG_ADMIN_GUI_LISTEN:-0.0.0.0:8002}"
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_ADMIN_GUI_LISTEN: "0.0.0.0:8002"
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_PREFIX: ${KONG_PREFIX:-/var/run/kong}
+      KONG_PREFIX: /var/run/kong
       KONG_DECLARATIVE_CONFIG: "/opt/kong/kong.yaml"
     secrets:
       - kong_postgres_password
     networks:
       - kong-net
     ports:
-      # The following two environment variables default to an insecure value (0.0.0.0)
-      # according to the CIS Security test.
-      - "${KONG_INBOUND_PROXY_LISTEN:-0.0.0.0}:8000:8000/tcp"
-      - "${KONG_INBOUND_SSL_PROXY_LISTEN:-0.0.0.0}:8443:8443/tcp"
-      # Making them mandatory but undefined, like so would be backwards-breaking:
-      # - "${KONG_INBOUND_PROXY_LISTEN?Missing inbound proxy host}:8000:8000/tcp"
-      # - "${KONG_INBOUND_SSL_PROXY_LISTEN?Missing inbound proxy ssl host}:8443:8443/tcp"
-      # Alternative is deactivating check 5.13 in the security bench, if we consider Kong's own config to be enough security here
-
+      - "8000:8000/tcp"
+      - "8443:8443/tcp"
       - "8001:8001/tcp"
       - "8444:8444/tcp"
       - "8002:8002/tcp"
@@ -89,7 +86,7 @@ services:
     restart: on-failure:5
     read_only: true
     volumes:
-      - kong_prefix_vol:${KONG_PREFIX:-/var/run/kong}
+      - kong_prefix_vol:/var/run/kong
       - kong_tmp_vol:/tmp
       - ./config:/opt/kong
     security_opt:
@@ -98,8 +95,8 @@ services:
   db:
     image: postgres:9.5
     environment:
-      POSTGRES_DB: ${KONG_PG_DATABASE:-kong}
-      POSTGRES_USER: ${KONG_PG_USER:-kong}
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
       POSTGRES_PASSWORD_FILE: /run/secrets/kong_postgres_password
     secrets:
       - kong_postgres_password
@@ -109,9 +106,9 @@ services:
           "CMD",
           "pg_isready",
           "-d",
-          "${KONG_PG_DATABASE:-kong}",
+          "kong",
           "-U",
-          "${KONG_PG_USER:-kong}"
+          "kong"
         ]
       interval: 30s
       timeout: 30s
