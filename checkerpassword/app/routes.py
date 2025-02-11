@@ -79,12 +79,21 @@ def init_routes(app):
             "password": password,
         }
 
+    def get_client_ip():
+        # Retrieve the real IP address, considering Kong Gateway and proxies
+        if request.headers.get("X-Forwarded-For"):
+            return request.headers.get("X-Forwarded-For").split(',')[0]  # Take the first IP
+        elif request.headers.get("X-Real-IP"):
+            return request.headers.get("X-Real-IP")
+        else:
+            return request.remote_addr  # Fallback to default if no header found
+
     @app.route('/check_password', methods=['POST'])
     def check_password():
         data = request.get_json()
         password = data.get('password', '')
 
-        ip = request.remote_addr
+        ip = get_client_ip()  # Use the updated method to get the real IP
         origin = request.headers.get('Origin', 'Unknown')
 
         result = evaluate_password(password)
